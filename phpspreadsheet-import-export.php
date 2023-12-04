@@ -1,6 +1,7 @@
 <?php
 /**
  * Plugin Name: PhpSpreadsheet Import and Export
+ * Plugin URI: https://github.com/sagargc/phpspreadsheet-import-export
  * Description: PhpSpreadsheet Import and Export Plugin for WordPress
  * Version: 1.0.0
  * Author: Sagar G C
