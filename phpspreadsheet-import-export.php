@@ -194,11 +194,11 @@ function alumnis_import_upload(){
 				</div>
 			</div>					
 			<div id="importing" style="widht:200px; height:200px; display: none;  left: 0; right: 0; vertical-align:middle;">
-			<img src="<?php echo get_template_directory_uri(); ?>/assets/img/siwi-preloader.gif" /></div>
+			<img src="<?php echo PHP_SPREADSHEET_PLUGIN_URL; ?>/assets/img/preloader.gif" /></div>
 			<div id="result"></div>
 		</form>
-		<script type='text/javascript' src='<?php echo get_template_directory_uri(); ?>/assets/js/vendor/dropzone.js'></script>
-		<link rel='stylesheet' id='stylea-css'  href='<?php echo get_template_directory_uri(); ?>/assets/css/vendor/dropzone.scss' type='text/css' media='all' />
+		<script type='text/javascript' src='<?php echo PHP_SPREADSHEET_PLUGIN_URL; ?>/assets/js/dropzone.js'></script>
+		<link rel='stylesheet' id='stylea-css'  href='<?php echo PHP_SPREADSHEET_PLUGIN_URL; ?>/assets/css/dropzone.scss' type='text/css' media='all' />
 		<script>
 			Dropzone.autoDiscover = false;
 			jQuery(document).ready(function(){
