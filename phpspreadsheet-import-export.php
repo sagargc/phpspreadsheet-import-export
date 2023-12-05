@@ -1,18 +1,26 @@
 <?php
 /**
+ * The plugin import and export data into database
+ * 
+ * This file is read by WordPress to generate the plugin information in the plugin 
+ * admin area. This file also includes all of the dependencies used by the plugin, 
+ * registers the activation and deactivation functions, and defines a function 
+ * that starts the plugin.
+ * 
+ * @link			https://github.com/sagargc/phpspreadsheet-import-export
+ * @since			1.0.0
+ * @package			PhpSpreadsheet_Import_Export
+ * 
  * Plugin Name: PhpSpreadsheet Import and Export
  * Plugin URI: https://github.com/sagargc/phpspreadsheet-import-export
  * Description: PhpSpreadsheet Import and Export Plugin for WordPress
  * Version: 1.0.0
  * Author: Sagar G C
  * Author URI: http://sagargc.com.np 
- * Text Domain: phpspreadsheet-import-export
- * Requires at least: 3.9
- * Requires PHP: 8.0
  * License: GPL-2.0+
- * License URI: http://www.gnu.org/licenses/gpl-2.0.html
- * 
- * @package PhpSpreadsheet
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.html  
+ * Text Domain: phpspreadsheet-import-export
+ * Domain Path: /languages 
  */
 
 define("PHP_SPREADSHEET_PLUGIN_URL", WP_PLUGIN_URL.'/'.basename(dirname(__FILE__)));
@@ -28,7 +36,7 @@ use PhpOffice\PhpSpreadsheet\Calculation\TextData\Replace;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
- // Check if PHP version is below 8.0.
+// Check if PHP version is below 8.0.
 if(phpversion() < 8.0){
     add_action( 'admin_notices', 'php_spreadsheet_admin_notice' );
     function php_spreadsheet_admin_notice() {
@@ -45,9 +53,9 @@ add_action('admin_menu', 'my_alumnis_add_import_menu');
 function my_alumnis_add_import_menu(){
 	add_submenu_page( 'edit.php?post_type=alumni', 'Add alumni', 'Add alumni','manage_options', 'admin.php?page=alumni_add','alumni_add');
     add_submenu_page( 'edit.php?post_type=alumni',  'Alumni Import', 'Alumni Import', 'manage_options', 'admin.php?page=alumnis_import_upload', 'alumnis_import_upload');
-    add_menu_page ( 'PHPExcel Export', 'Export', 'manage_options', 'phpspreadsheet-dashboard', 'phpspreadsheet_dashboard' );	
+    add_menu_page ( 'Export Users', 'Export User Type', 'manage_options', 'phpspreadsheet-dashboard', 'phpspreadsheet_dashboard', 'dashicons-media-spreadsheet
+	', 10 );	
 }
-
 
 // Add alumni.
 function alumni_add() { 
@@ -230,10 +238,9 @@ function alumnis_import_upload(){
 							var importData={'action': 'import_alumni', 'file_id': fileID };
 								jQuery.ajax({
 								type: 'post',
-								url: ajax_url,
+								// url: ajax_url,
+								url: '<?php  echo admin_url('admin-ajax.php'); ?>',
 								data: importData,
-								 
-
 								beforeSend: function() {
 									jQuery("#importing").show();
 								},
@@ -745,7 +752,7 @@ function phpspreadsheet_dashboard() {
 		</div><br>
 		<input type="submit" name='export' id="csvExport" value="Export"/>
 	</form>
-	<style> .export-type:first{ padding-top: 10px; } .export-type { font-size: 15px;   text-transform: capitalize; } </style>
+	<style> .export-type:first{ padding-top: 10px; } .export-type { font-size: 15px;   text-transform: capitalize; padding-right: 10px; } </style>
 	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 	<script>
 		jQuery( function() {
@@ -788,3 +795,97 @@ function phpspreadsheet_dashboard() {
 
 
 
+// For ajax communication inside this file.
+add_action('wp_ajax_import_alumni', 'import_alumni' );
+add_action('wp_ajax_nopriv_import_alumni', 'import_alumni' );
+// Check if Spreadsheet class exists.
+if(class_exists( Spreadsheet::class ) ) {	
+	function getSheets($fileName) {
+		try {			
+			$fileType = IOFactory::identify($fileName);			
+			$reader = IOFactory::createReader($fileType);
+			// if($fileType == 'Csv' || $fileType == 'csv') {
+			// 	// $reader = new \PhpOffice\PhpSpreadsheet\Reader\Csv();
+			// 	$reader = IOFactory::createReader('Csv');
+			// } else if($fileType == 'Xlsx' || $fileType == 'xlsx') {
+			// 	// $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+			// 	$reader = IOFactory::createReader('Xlsx');
+			// } else if($fileType == 'Xls' || $fileType == 'xls') {
+			// 	// $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
+			// 	$reader = IOFactory::createReader('Xls');
+			// } else {
+			// 	$reader = IOFactory::createReader($fileType);
+			// }
+			$reader->setReadDataOnly(true);
+
+			$spreadsheet = $reader->load($fileName);
+			// $all = $spreadsheet->getSheetNames()[1];
+			$sheets = [];
+			foreach ($spreadsheet->getAllSheets() as $key => $sheet) {
+				$sheets[$sheet->getTitle()] = $sheet->toArray();
+			}
+			return $sheets;
+		} catch (Exception $e) {
+			 die($e->getMessage());
+		}
+	}
+	
+} 
+
+function import_alumni() {
+	
+	$alumni_file=get_attached_file( $_POST['file_id'] );
+	$alumnies = getSheets($alumni_file);
+	$i=0;
+	$output = '<ul>';
+	if(!empty($alumnies['Worksheet'] ) && is_array($alumnies['Worksheet'] ) && strtolower($alumnies['Worksheet'][0][0]) == 'first_name' && strtolower($alumnies['Worksheet'][0][1]) == 'last_name' && strtolower($alumnies['Worksheet'][0][2]) == 'email' ) {	
+
+		foreach($alumnies['Worksheet'] as $alumni)		{  
+			
+			if( $i >= 1 && filter_var($alumni[2], FILTER_VALIDATE_EMAIL) ){
+				$user= ' <span class="user--name"> ' .$alumni[0].' '.$alumni[1].' </span><span class="user--email"> '.$alumni[2].' </span> ';
+				$post_count = check_email_existence( $alumni[2] );
+
+				if ( $post_count >= 1 )
+				{
+					$status= ' <span style="color:#ff0000;">Email Already Exist !</span>';
+				
+				} else {
+					$args=array(
+						'post_title' => $alumni[0].' '.$alumni[1],
+						'post_type' => 'alumni',
+					);
+					$id=wp_insert_post($args);
+					update_field('first_name',$alumni[0],$id);
+					update_field('last_name',$alumni[1],$id);
+					update_field('email',$alumni[2],$id);
+					$key=md5(uniqid(rand(), true));
+					add_post_meta($id,'key',$key);
+					add_post_meta($id,'status','0');
+					new_alumni_notification($alumni[0],$alumni[1],$alumni[2],$id,$key);
+					if($id)
+					{
+						$status= ' <span style="color:#09a509;">Success!</span>';
+					}
+					else
+					{
+						$status= ' <span style="color:#ff0000;">Sorry Unable to import alumni !</span>';
+					}
+				}
+				
+				
+			}
+			$i++;
+
+			$output.= '<li><b>'.$user.'</b>-'.$status.'</li>';
+			
+		}
+	} else {
+		$output.= '<li style="color:#ff0000;"><br>Data formatting is not matching, please fromat it and try again!</li>';
+	}
+	$output.=  '</ul>';
+	echo $output;
+	// exit();
+	wp_die();
+		
+}
